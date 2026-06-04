@@ -75,8 +75,9 @@ export default function MaintenancePage() {
       await fetchInterventions();
       setSuccess("Intervention prise en charge.");
       setTimeout(() => setSuccess(""), 3000);
-    } catch {
-      setError("Erreur lors de la prise en charge.");
+    } catch (err) {
+      console.error("SYS_ERR: handlePrendreEnCharge", err);
+      setError(err.response?.data?.detail ?? "Erreur lors de la prise en charge.");
     }
   };
 
@@ -109,8 +110,9 @@ export default function MaintenancePage() {
       setSuccess("Intervention clôturée avec succès.");
       setTimeout(() => setSuccess(""), 4000);
       await fetchInterventions();
-    } catch {
-      setError("Erreur lors de la clôture.");
+    } catch (err) {
+      console.error("SYS_ERR: handleCloturer", err);
+      setError(err.response?.data?.detail ?? "Erreur lors de la clôture.");
     } finally {
       setLoading(false);
     }
@@ -178,6 +180,7 @@ export default function MaintenancePage() {
                       machine={getMachine(i.machine_id)}
                       action={
                         <button
+                          type="button"
                           onClick={() => handlePrendreEnCharge(i.id)}
                           className="text-[11px] font-mono font-bold uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-md transition-colors cursor-pointer shadow-2xs"
                         >
@@ -205,6 +208,7 @@ export default function MaintenancePage() {
                       machine={getMachine(i.machine_id)}
                       action={
                         <button
+                          type="button"
                           onClick={() => handleOuvrir(i)}
                           className="text-[11px] font-mono font-bold uppercase tracking-wider bg-[#0072BC] hover:bg-[#005c99] text-white px-3 py-2 rounded-md transition-colors cursor-pointer shadow-2xs"
                         >
