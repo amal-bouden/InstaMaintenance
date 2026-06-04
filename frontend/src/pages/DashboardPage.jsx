@@ -67,7 +67,7 @@ export default function DashboardPage() {
     fetchAll();
   }, []);
 
-  const fetchAll = async () => {
+  async function fetchAll() {
     setLoading(true);
     try {
       const [r1, r2, r3, r4] = await Promise.all([
@@ -85,7 +85,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const total = interventions.length;
   const enAttente = interventions.filter(i => i.statut === "en_attente").length;

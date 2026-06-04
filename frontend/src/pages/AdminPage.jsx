@@ -18,19 +18,33 @@ export default function AdminPage() {
   const [success, setSuccess] = useState("");
   const [showForm, setShowForm] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  
 
   const fetchUsers = async () => {
     try {
       const { data } = await getUsers();
       setUsers(data);
-    } catch {
+    } catch (err) {
       setError("SYS_ERR: Impossible de charger le registre des utilisateurs.");
+      console.error(err);
     }
   };
 
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const { data } = await getUsers();
+        if (mounted) setUsers(data);
+      } catch (err) {
+        if (mounted) setError("SYS_ERR: Impossible de charger le registre des utilisateurs.");
+        console.error(err);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.role === "chef" && !form.section) {

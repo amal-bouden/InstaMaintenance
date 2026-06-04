@@ -1,5 +1,5 @@
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/useAuth";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const roleLabels = {
   admin:      "Administrateur",
@@ -10,6 +10,7 @@ const roleLabels = {
 export default function Navbar() {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logoutUser();
@@ -17,27 +18,65 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <span className="text-lg font-semibold text-gray-800">⚙️ InstaMaintenance</span>
+    <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between font-sans antialiased">
+      
+      {/* Section Gauche : Logo & Zone d'affectation */}
+      <div className="flex items-center gap-6">
+        <span className="text-md font-bold tracking-tight text-slate-900 font-mono">
+          [//] InstaMaintenance
+        </span>
+        
         {user?.section && (
-          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-            {user.section}
+          <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200 px-2 py-0.5 rounded">
+            SECTION: {user.section.toUpperCase()}
           </span>
         )}
       </div>
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-500">
-          {user?.username} —{" "}
-          <span className="font-medium text-gray-700">{roleLabels[user?.role]}</span>
+
+      {/* Section Centrale : Navigation Dynamique (Réservée Admin) */}
+      {user?.role === "admin" && (
+        <div className="flex gap-6 text-xs font-mono font-bold">
+          {[
+            { path: "/admin",       label: "REGISTRE_UTILISATEURS" },
+            { path: "/atelier",     label: "CONSOLE_ATELIER" },
+            { path: "/maintenance", label: "FLUX_MAINTENANCE" },
+            { path: "/dashboard",   label: "BI_ANALYTICS" },
+          ].map(({ path, label }) => {
+            const isActive = location.pathname === path;
+            return (
+              <button
+                key={path}
+                onClick={() => navigate(path)}
+                className={`transition-colors cursor-pointer tracking-wider ${
+                  isActive
+                    ? "text-[#0072BC] border-b-2 border-[#0072BC] pb-1"
+                    : "text-slate-400 hover:text-slate-800"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Section Droite : Profil & Session */}
+      <div className="flex items-center gap-6">
+        <span className="text-xs font-mono text-slate-400">
+          ID: <span className="text-slate-700 font-bold">{user?.username}</span> —{" "}
+          <span className="text-[#0072BC] font-bold uppercase">
+            {roleLabels[user?.role] || "Visiteur"}
+          </span>
         </span>
+        
         <button
           onClick={handleLogout}
-          className="text-sm text-red-500 hover:text-red-700 transition-colors"
+          className="text-xs font-mono font-bold text-red-600 hover:text-red-700 border border-red-100 hover:border-red-200 bg-red-50/50 px-2.5 py-1 rounded transition-colors cursor-pointer"
         >
-          Déconnexion
+          [ DECONNEXION ]
         </button>
       </div>
+
     </nav>
   );
 }

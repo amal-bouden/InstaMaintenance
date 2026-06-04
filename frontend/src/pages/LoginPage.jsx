@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/client";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -91,7 +91,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#0072BC] hover:bg-[#005c99] text-white font-medium text-sm py-2.5 px-4 rounded-lg shadow-xs transition-colors focus:outline-hidden font-mono uppercase tracking-wider font-bold disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                className="w-full bg-[#0072BC] hover:bg-[#005c99] text-white text-sm py-2.5 px-4 rounded-lg shadow-xs transition-colors focus:outline-hidden font-mono uppercase tracking-wider font-bold disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 {loading ? "Initialisation session..." : "Initialiser la Session →"}
               </button>

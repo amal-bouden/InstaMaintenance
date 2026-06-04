@@ -5,12 +5,19 @@ import LoginPage       from "./pages/LoginPage";
 import AtelierPage     from "./pages/AtelierPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import AdminPage       from "./pages/AdminPage";
+import DashboardPage   from "./pages/DashboardPage";
+
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/dashboard" element={
+  <ProtectedRoute roles={["admin"]}>
+    <DashboardPage />
+  </ProtectedRoute>
+}/>
           <Route path="/login" element={<LoginPage />} />
 
           <Route path="/atelier" element={

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import StatutBadge from "../components/StatutBadge";
 import { getMachines, getInterventions, creerIntervention } from "../api/client";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 
 export default function AtelierPage() {
   const { user } = useAuth();
@@ -27,21 +27,23 @@ export default function AtelierPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchMachines = async () => {
+  async function fetchMachines() {
     try {
       const { data } = await getMachines();
       setMachines(data);
     } catch {
       setError("Impossible de charger les machines.");
     }
-  };
+  }
 
-  const fetchInterventions = async () => {
+  async function fetchInterventions() {
     try {
       const { data } = await getInterventions();
       setInterventions(data);
-    } catch {}
-  };
+    } catch (err) {
+      console.error("SYS_ERR: fetchInterventions", err);
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -207,7 +209,7 @@ export default function AtelierPage() {
                 Aucun ticket d'intervention actif sur le serveur.
               </div>
             ) : (
-              <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1 scrollbar-thin">
+              <div className="space-y-3 max-h-110 overflow-y-auto pr-1 scrollbar-thin">
                 {interventionsEnrichies.map((i) => (
                   <div
                     key={i.id}

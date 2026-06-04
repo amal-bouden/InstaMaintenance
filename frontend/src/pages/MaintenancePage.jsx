@@ -30,8 +30,15 @@ export default function MaintenancePage() {
     };
   }
 
+  // Initial loader on mount — inline async to avoid hook dependency warnings
   useEffect(() => {
-    fetchAll();
+    (async () => {
+      try {
+        await Promise.all([fetchInterventions(), fetchMachines()]);
+      } catch (err) {
+        console.error("SYS_ERR: initial fetchAll", err);
+      }
+    })();
   }, []);
 
   // Polling toutes les 5 secondes
@@ -40,23 +47,25 @@ export default function MaintenancePage() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchAll = async () => {
-    await Promise.all([fetchInterventions(), fetchMachines()]);
-  };
+  // fetchAll inlined in the initial effect above; removed unused declaration
 
-  const fetchInterventions = async () => {
+  async function fetchInterventions() {
     try {
       const { data } = await getInterventions();
       setInterventions(data);
-    } catch {}
-  };
+    } catch (err) {
+      console.error("SYS_ERR: fetchInterventions", err);
+    }
+  }
 
-  const fetchMachines = async () => {
+  async function fetchMachines() {
     try {
       const { data } = await getMachines();
       setMachines(data);
-    } catch {}
-  };
+    } catch (err) {
+      console.error("SYS_ERR: fetchMachines", err);
+    }
+  }
 
   const getMachine = (id) => machines.find((m) => m.id === id);
 
@@ -88,7 +97,7 @@ export default function MaintenancePage() {
       setError("Sélectionnez au moins une nature de panne.");
       return;
     }
-    loading(true);
+    setLoading(true);
     setError("");
     try {
       await cloturerIntervention(selected.id, {
@@ -256,7 +265,7 @@ export default function MaintenancePage() {
 
                 {/* Encadré Alerte Émise */}
                 <div className="bg-slate-50 border border-slate-200/60 rounded-lg p-3.5 mb-5 text-xs text-slate-600 font-mono">
-                  <span className="font-bold text-slate-800 uppercase text-[10px] block mb-1 text-slate-400">// ALERTE ÉMISE :</span>
+                  <span className="font-bold uppercase text-[10px] block mb-1 text-slate-400">// ALERTE ÉMISE :</span>
                   {selected.description}
                 </div>
 
