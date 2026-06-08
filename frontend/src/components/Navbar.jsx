@@ -35,13 +35,27 @@ export default function Navbar() {
   const links = navLinks[user?.role] ?? [];
 
   return (
-    <nav className="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between font-sans antialiased">
+    <nav className="bg-white border-b border-slate-200 px-6 py-2 flex items-center justify-between font-sans antialiased shadow-sm">
       
-      {/* Section Gauche : Logo & Navigation dynamic par rôle */}
+      {/* Section Gauche : Logo Consomed & Navigation dynamic par rôle */}
       <div className="flex items-center gap-8">
-        <span className="text-md font-bold tracking-tight text-slate-900 font-mono">
-          [//] InstaMaintenance
-        </span>
+        {/* Real Consomed Logo */}
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(links[0]?.path ?? "/")}>
+          <img
+            src="/consomed-logo.svg"
+            alt="CONSOMED"
+            className="h-10 w-auto"
+            draggable="false"
+          />
+          <div className="border-l border-slate-200 pl-3">
+            <p className="text-[9px] font-mono font-black tracking-widest text-slate-400 uppercase leading-none">
+              // INSTAMAINTENANCE
+            </p>
+            <p className="text-[8px] font-mono text-slate-300 tracking-widest uppercase leading-tight">
+              SYSTÈME GMAO
+            </p>
+          </div>
+        </div>
 
         {links.length > 0 && (
           <div className="flex gap-6 text-xs font-mono font-bold">
