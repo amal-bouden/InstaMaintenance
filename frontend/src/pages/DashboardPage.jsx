@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-import { getStatsMTTR, getStatsCouts, getStatsHistorique, getInterventions } from "../api/client";
+import { getStatsMTTR, getStatsCouts, getStatsHistorique, getInterventions, getUsers, getMachines } from "../api/client";
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement,
@@ -61,6 +61,9 @@ export default function DashboardPage() {
   const [couts, setCouts] = useState([]);
   const [historique, setHistorique] = useState([]);
   const [interventions, setInterventions] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [machines, setMachines] = useState([]);
+  const [tab, setTab] = useState("analytics");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,22 +73,31 @@ export default function DashboardPage() {
   async function fetchAll() {
     setLoading(true);
     try {
-      const [r1, r2, r3, r4] = await Promise.all([
+      const [r1, r2, r3, r4, r5, r6] = await Promise.all([
         getStatsMTTR(),
         getStatsCouts(),
         getStatsHistorique(),
         getInterventions(),
+        getUsers(),
+        getMachines(),
       ]);
       setMttr(r1.data);
       setCouts(r2.data);
       setHistorique(r3.data);
       setInterventions(r4.data);
+      setUsers(r5.data);
+      setMachines(r6.data);
     } catch {
       console.error("SYS_ERR: Échec de la compilation des métriques de performance.");
     } finally {
       setLoading(false);
     }
   }
+
+  const getMachineCode = (machineId) => {
+    const m = machines.find((mach) => mach.id === machineId);
+    return m ? m.code : `ID #${machineId}`;
+  };
 
   const total = interventions.length;
   const enAttente = interventions.filter(i => i.statut === "en_attente").length;
@@ -226,59 +238,154 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Graphiques Ligne 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs h-80">
-            {mttr.length > 0 ? (
-              <Bar data={mttrData} options={chartOptions("TEMPS MOYEN DE RÉPARATION PAR SECTEUR (MTTR)", "min")} />
-            ) : (
-              <EmptyChart message="ERR_NO_DATA: Aucun relevé de fermeture d'incident détecté pour le calcul du MTTR." />
-            )}
-          </div>
+        {/* Switcher de Onglets */}
+        <div className="flex gap-6 mb-6 border-b border-slate-200 pb-2">
+          <button
+            onClick={() => setTab("analytics")}
+            className={`font-mono text-xs font-bold uppercase tracking-wider pb-1 transition-all cursor-pointer ${
+              tab === "analytics"
+                ? "text-[#0072BC] border-b-2 border-[#0072BC]"
+                : "text-slate-400 hover:text-slate-700"
+            }`}
+          >
+            [ analyses_bi_analytics ]
+          </button>
+          <button
+            onClick={() => setTab("technicians")}
+            className={`font-mono text-xs font-bold uppercase tracking-wider pb-1 transition-all cursor-pointer ${
+              tab === "technicians"
+                ? "text-[#0072BC] border-b-2 border-[#0072BC]"
+                : "text-slate-400 hover:text-slate-700"
+            }`}
+          >
+            [ registre_techniciens_direct ]
+          </button>
+        </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs h-80 flex flex-col">
-            {couts.length > 0 ? (
-              <>
-                <p className="text-xs font-bold font-mono text-slate-400 uppercase tracking-wider mb-4">
-                  // REPARTITION FINANCIERE DES PIÈCES (DT)
-                </p>
-                <div className="h-full flex items-center justify-center pb-2">
-                  <div className="w-48 h-48">
-                    <Doughnut
-                      data={coutsData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: { 
-                            position: "right", 
-                            labels: { font: { family: "monospace", size: 9 }, boxWidth: 10, color: "#64748B" } 
-                          },
-                          tooltip: {
-                            backgroundColor: "#1E293B",
-                            bodyFont: { family: "monospace", size: 11 },
-                            callbacks: { label: (ctx) => ` Charge: ${ctx.parsed} DT` }
-                          }
-                        }
-                      }}
-                    />
+        {tab === "analytics" ? (
+          <>
+            {/* Graphiques Ligne 1 */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs h-80">
+                {mttr.length > 0 ? (
+                  <Bar data={mttrData} options={chartOptions("TEMPS MOYEN DE RÉPARATION PAR SECTEUR (MTTR)", "min")} />
+                ) : (
+                  <EmptyChart message="ERR_NO_DATA: Aucun relevé de fermeture d'incident détecté pour le calcul du MTTR." />
+                )}
+              </div>
+
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs h-80 flex flex-col">
+                {couts.length > 0 ? (
+                  <>
+                    <p className="text-xs font-bold font-mono text-slate-400 uppercase tracking-wider mb-4">
+                      // REPARTITION FINANCIERE DES PIÈCES (DT)
+                    </p>
+                    <div className="h-full flex items-center justify-center pb-2">
+                      <div className="w-48 h-48">
+                        <Doughnut
+                          data={coutsData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { 
+                                position: "right", 
+                                labels: { font: { family: "monospace", size: 9 }, boxWidth: 10, color: "#64748B" } 
+                              },
+                              tooltip: {
+                                backgroundColor: "#1E293B",
+                                bodyFont: { family: "monospace", size: 11 },
+                                callbacks: { label: (ctx) => ` Charge: ${ctx.parsed} DT` }
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <EmptyChart message="ERR_NO_COSTS: Aucun composant ou consommable n'a généré de facturation sur les rapports FOR-MAI-03." />
+                )}
+              </div>
+            </div>
+
+            {/* Graphique Ligne 2 */}
+            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs h-80">
+              {historique.length > 0 ? (
+                <Bar data={intervParSectionData} options={stackedOptions} />
+              ) : (
+                <EmptyChart message="ERR_NO_HISTORY: Le journal global analytique de production est vierge." />
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+            <div className="bg-slate-50 border-b border-slate-200 px-5 py-3.5">
+              <h2 className="text-xs font-bold font-mono text-slate-500 uppercase tracking-wider">
+                // REGISTRE OPÉRATIONNEL DES TECHNICIENS DE MAINTENANCE
+              </h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {users.filter(u => u.role === "technicien").map(tech => {
+                const activeInterventions = interventions.filter(i => i.technicien_id === tech.id && i.statut === "en_cours");
+                const resolvedCount = interventions.filter(i => i.technicien_id === tech.id && i.statut === "resolu").length;
+                const isOccupied = activeInterventions.length > 0;
+                
+                return (
+                  <div key={tech.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-mono font-bold text-slate-700 text-sm">
+                        {tech.username.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-slate-900 font-sans">{tech.username}</h3>
+                        <p className="text-xs font-mono text-slate-400">ID Réseau: #{tech.id.toString().padStart(4, "0")}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-6">
+                      {/* Statut Badge */}
+                      <div>
+                        <span className={`text-[10px] font-mono font-bold uppercase px-3 py-1 rounded-full border ${
+                          isOccupied 
+                            ? "bg-amber-50 text-amber-700 border-amber-200" 
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        }`}>
+                          ● {isOccupied ? "Occupé / Diagnostic Actif" : "Disponible"}
+                        </span>
+                      </div>
+
+                      {/* Active Tickets Detail */}
+                      <div className="min-w-48 text-xs font-mono">
+                        {isOccupied ? (
+                          <div className="text-amber-800">
+                            <span className="font-bold">En charge:</span> Machine {" "}
+                            <span className="font-bold underline">
+                              {activeInterventions.map(i => getMachineCode(i.machine_id)).join(", ")}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Aucun ticket actif</span>
+                        )}
+                      </div>
+
+                      {/* Resolved Count */}
+                      <div className="text-right">
+                        <p className="text-[10px] font-mono text-slate-400 uppercase font-bold">// CLÔTURES</p>
+                        <p className="text-sm font-bold font-mono text-emerald-600">{resolvedCount} ticket(s) résolu(s)</p>
+                      </div>
+                    </div>
                   </div>
+                );
+              })}
+              {users.filter(u => u.role === "technicien").length === 0 && (
+                <div className="text-center py-12 text-slate-400 font-mono text-xs">
+                  AUCUN TECHNICIEN ENREGISTRÉ DANS LE RÉPERTOIRE.
                 </div>
-              </>
-            ) : (
-              <EmptyChart message="ERR_NO_COSTS: Aucun composant ou consommable n'a généré de facturation sur les rapports FOR-MAI-03." />
-            )}
+              )}
+            </div>
           </div>
-        </div>
-
-        {/* Graphique Ligne 2 */}
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs h-80">
-          {historique.length > 0 ? (
-            <Bar data={intervParSectionData} options={stackedOptions} />
-          ) : (
-            <EmptyChart message="ERR_NO_HISTORY: Le journal global analytique de production est vierge." />
-          )}
-        </div>
+        )}
 
       </div>
     </div>

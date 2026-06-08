@@ -6,7 +6,7 @@ import AtelierPage     from "./pages/AtelierPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import AdminPage       from "./pages/AdminPage";
 import DashboardPage   from "./pages/DashboardPage";
-
+import HistoriquePage  from "./pages/HistoriquePage";
 
 export default function App() {
   return (
@@ -14,10 +14,10 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/dashboard" element={
-  <ProtectedRoute roles={["admin"]}>
-    <DashboardPage />
-  </ProtectedRoute>
-}/>
+            <ProtectedRoute roles={["admin", "chef_maintenance"]}>
+              <DashboardPage />
+            </ProtectedRoute>
+          }/>
           <Route path="/login" element={<LoginPage />} />
 
           <Route path="/atelier" element={
@@ -27,14 +27,31 @@ export default function App() {
           }/>
 
           <Route path="/maintenance" element={
-            <ProtectedRoute roles={["technicien", "admin"]}>
+            <ProtectedRoute roles={["technicien", "admin", "chef_maintenance"]}>
               <MaintenancePage />
             </ProtectedRoute>
           }/>
+          <Route path="/maintenance" element={
+  <ProtectedRoute roles={["technicien", "admin", "chef_maintenance"]}>
+    <MaintenancePage />
+  </ProtectedRoute>
+}/>
+
+<Route path="/dashboard" element={
+  <ProtectedRoute roles={["admin", "chef_maintenance"]}>
+    <DashboardPage />
+  </ProtectedRoute>
+}/>
 
           <Route path="/admin" element={
             <ProtectedRoute roles={["admin"]}>
               <AdminPage />
+            </ProtectedRoute>
+          }/>
+
+          <Route path="/historique" element={
+            <ProtectedRoute roles={["admin", "chef", "technicien", "chef_maintenance"]}>
+              <HistoriquePage />
             </ProtectedRoute>
           }/>
 

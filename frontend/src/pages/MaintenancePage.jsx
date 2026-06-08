@@ -7,8 +7,10 @@ import {
   prendreEnCharge,
   cloturerIntervention,
 } from "../api/client";
+import { useAuth } from "../context/useAuth";
 
 export default function MaintenancePage() {
+  const { user } = useAuth();
   const [interventions, setInterventions] = useState([]);
   const [machines, setMachines] = useState([]);
   const [selected, setSelected] = useState(null); // intervention active pour clôture
@@ -27,10 +29,14 @@ export default function MaintenancePage() {
       actions_menees: "",
       piece_rechange: "",
       cout_piece_dt: "",
+      nom_receptionnaire: user?.username || "", // Automatisation de la session
+      nom_operateur: "",
+      validation_essai: "O/K",                  // Standard de conformité usine
+      observation: "RAS",                       // Statut nominal par défaut
     };
   }
 
-  // Initial loader on mount — inline async to avoid hook dependency warnings
+  // Initial loader on mount
   useEffect(() => {
     (async () => {
       try {
@@ -46,8 +52,6 @@ export default function MaintenancePage() {
     const interval = setInterval(fetchInterventions, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  // fetchAll inlined in the initial effect above; removed unused declaration
 
   async function fetchInterventions() {
     try {
@@ -81,9 +85,46 @@ export default function MaintenancePage() {
     }
   };
 
+  const telechargerPDF = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`http://localhost:8000/interventions/${id}/telecharger-pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(errorData.detail || "Erreur lors du téléchargement du PDF");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `FOR-MAI-03_${id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download error:", err.message);
+      alert(`Erreur PDF: ${err.message}`);
+    }
+  };
+
   const handleOuvrir = (intervention) => {
     setSelected(intervention);
-    setForm(initialForm());
+    setForm({
+      ...initialForm(),
+      nom_receptionnaire: intervention.nom_receptionnaire || user?.username || "",
+      nom_operateur: intervention.nom_operateur || "",
+      validation_essai: intervention.validation_essai || "O/K",
+      observation: intervention.observation || "RAS",
+      nature_electrique: intervention.nature_electrique || false,
+      nature_mecanique: intervention.nature_mecanique || false,
+      nature_autre: intervention.nature_autre || false,
+      parametres_controles: intervention.parametres_controles || "",
+      remarques: intervention.remarques || "",
+      actions_menees: intervention.actions_menees || "",
+      piece_rechange: intervention.piece_rechange || "",
+      cout_piece_dt: intervention.cout_piece_dt || "",
+    });
     setError("");
     setSuccess("");
   };
@@ -140,7 +181,7 @@ export default function MaintenancePage() {
 
         {success && (
           <div className="mb-6 text-xs font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 flex items-center gap-2">
-            <span>✓</span> {success}
+            <span>[ OK ]</span> {success}
           </div>
         )}
 
@@ -169,7 +210,7 @@ export default function MaintenancePage() {
             {enAttente.length > 0 && (
               <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-xs">
                 <h2 className="text-xs font-bold font-mono uppercase tracking-wider text-red-600 mb-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-                  <span>● Demandes urgentes</span>
+                  <span>[!] Demandes urgentes</span>
                   <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded text-[10px] border border-red-100">{enAttente.length}</span>
                 </h2>
                 <div className="space-y-3">
@@ -178,14 +219,17 @@ export default function MaintenancePage() {
                       key={i.id}
                       intervention={i}
                       machine={getMachine(i.machine_id)}
+                      telechargerPDF={telechargerPDF}
                       action={
-                        <button
-                          type="button"
-                          onClick={() => handlePrendreEnCharge(i.id)}
-                          className="text-[11px] font-mono font-bold uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-md transition-colors cursor-pointer shadow-2xs"
-                        >
-                          Prendre en charge
-                        </button>
+                        user?.role !== "chef_maintenance" && (
+                          <button
+                            type="button"
+                            onClick={() => handlePrendreEnCharge(i.id)}
+                            className="text-[11px] font-mono font-bold uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-md transition-colors cursor-pointer shadow-2xs"
+                          >
+                            Prendre en charge
+                          </button>
+                        )
                       }
                     />
                   ))}
@@ -206,14 +250,17 @@ export default function MaintenancePage() {
                       key={i.id}
                       intervention={i}
                       machine={getMachine(i.machine_id)}
+                      telechargerPDF={telechargerPDF}
                       action={
-                        <button
-                          type="button"
-                          onClick={() => handleOuvrir(i)}
-                          className="text-[11px] font-mono font-bold uppercase tracking-wider bg-[#0072BC] hover:bg-[#005c99] text-white px-3 py-2 rounded-md transition-colors cursor-pointer shadow-2xs"
-                        >
-                          Remplir FOR-MAI-03
-                        </button>
+                        user?.role !== "chef_maintenance" && (
+                          <button
+                            type="button"
+                            onClick={() => handleOuvrir(i)}
+                            className="text-[11px] font-mono font-bold uppercase tracking-wider bg-[#0072BC] hover:bg-[#005c99] text-white px-3 py-2 rounded-md transition-colors cursor-pointer shadow-2xs"
+                          >
+                            Remplir FOR-MAI-03
+                          </button>
+                        )
                       }
                     />
                   ))}
@@ -225,7 +272,7 @@ export default function MaintenancePage() {
             {resolus.length > 0 && (
               <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-xs">
                 <h2 className="text-xs font-bold font-mono uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-100">
-                  ✔ Clôturés récemment ({resolus.length})
+                  [ OK ] Clôturés récemment ({resolus.length})
                 </h2>
                 <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
                   {resolus.map((i) => (
@@ -233,6 +280,14 @@ export default function MaintenancePage() {
                       key={i.id}
                       intervention={i}
                       machine={getMachine(i.machine_id)}
+                      action={
+                        <button
+                          onClick={() => telechargerPDF(i.id)}
+                          className="text-xs bg-slate-800 hover:bg-slate-950 text-white px-3 py-1.5 rounded font-mono font-bold transition-colors cursor-pointer"
+                        >
+                          [ PDF ]
+                        </button>
+                      }
                     />
                   ))}
                 </div>
@@ -261,7 +316,7 @@ export default function MaintenancePage() {
                   </div>
                   <button
                     onClick={() => setSelected(null)}
-                    className="text-slate-400 hover:text-slate-600 text-xl font-mono p-1 cursor-pointer line-none"
+                    className="text-slate-400 hover:text-slate-600 text-xl font-mono p-1 cursor-pointer"
                   >
                     ×
                   </button>
@@ -290,10 +345,11 @@ export default function MaintenancePage() {
                           <input
                             type="checkbox"
                             checked={form[key]}
+                            disabled={user?.role === "chef_maintenance" || loading}
                             onChange={(e) =>
                               setForm({ ...form, [key]: e.target.checked })
                             }
-                            className="w-4 h-4 rounded border-slate-300 text-[#0072BC] focus:ring-0 focus:ring-offset-0"
+                            className="w-4 h-4 rounded border-slate-300 text-[#0072BC] focus:ring-0 focus:ring-offset-0 disabled:opacity-50"
                           />
                           {label}
                         </label>
@@ -309,11 +365,12 @@ export default function MaintenancePage() {
                     <input
                       type="text"
                       value={form.parametres_controles}
+                      disabled={user?.role === "chef_maintenance" || loading}
                       onChange={(e) =>
                         setForm({ ...form, parametres_controles: e.target.value })
                       }
                       placeholder="ex: Tension d'allumage, pression hydraulique..."
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono disabled:bg-slate-50"
                     />
                   </div>
 
@@ -324,12 +381,13 @@ export default function MaintenancePage() {
                     </label>
                     <textarea
                       value={form.remarques}
+                      disabled={user?.role === "chef_maintenance" || loading}
                       onChange={(e) =>
                         setForm({ ...form, remarques: e.target.value })
                       }
                       rows={2}
                       placeholder="Constats d'usure, anomalies annexes repérées..."
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono resize-none"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono resize-none disabled:bg-slate-50"
                     />
                   </div>
 
@@ -340,12 +398,13 @@ export default function MaintenancePage() {
                     </label>
                     <textarea
                       value={form.actions_menees}
+                      disabled={user?.role === "chef_maintenance" || loading}
                       onChange={(e) =>
                         setForm({ ...form, actions_menees: e.target.value })
                       }
                       rows={3}
                       placeholder="Détaillez explicitement les interventions d'ingénierie effectuées..."
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono resize-none"
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono resize-none disabled:bg-slate-50"
                       required
                     />
                   </div>
@@ -359,11 +418,12 @@ export default function MaintenancePage() {
                       <input
                         type="text"
                         value={form.piece_rechange}
+                        disabled={user?.role === "chef_maintenance" || loading}
                         onChange={(e) =>
                           setForm({ ...form, piece_rechange: e.target.value })
                         }
                         placeholder="Réf index usine"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono disabled:bg-slate-50"
                       />
                     </div>
                     <div>
@@ -375,29 +435,105 @@ export default function MaintenancePage() {
                         min="0"
                         step="0.01"
                         value={form.cout_piece_dt}
+                        disabled={user?.role === "chef_maintenance" || loading}
                         onChange={(e) =>
                           setForm({ ...form, cout_piece_dt: e.target.value })
                         }
-                        placeholder="0.000"
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono"
+                        placeholder="0.00"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] font-mono disabled:bg-slate-50"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Réceptionnaire & Opérateur */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-mono uppercase tracking-wider text-slate-600 mb-1.5">
+                        Nom du réceptionnaire
+                      </label>
+                      <input
+                        type="text"
+                        value={form.nom_receptionnaire}
+                        disabled={user?.role === "chef_maintenance" || loading}
+                        onChange={(e) =>
+                          setForm({ ...form, nom_receptionnaire: e.target.value })
+                        }
+                        placeholder="ex: Ahmed Ben Ali"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-hidden focus:border-[#0072BC] font-mono disabled:bg-slate-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold font-mono uppercase tracking-wider text-slate-600 mb-1.5">
+                        Nom de l'opérateur *
+                      </label>
+                      <input
+                        type="text"
+                        value={form.nom_operateur}
+                        disabled={user?.role === "chef_maintenance" || loading}
+                        onChange={(e) =>
+                          setForm({ ...form, nom_operateur: e.target.value })
+                        }
+                        placeholder="ex: Rahma"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-hidden focus:border-[#0072BC] font-mono disabled:bg-slate-50"
+                        required={user?.role !== "chef_maintenance"}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Validation & Observation */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold font-mono uppercase tracking-wider text-slate-600 mb-1.5">
+                        Validation et essai
+                      </label>
+                      <input
+                        type="text"
+                        value={form.validation_essai}
+                        disabled={user?.role === "chef_maintenance" || loading}
+                        onChange={(e) =>
+                          setForm({ ...form, validation_essai: e.target.value })
+                        }
+                        placeholder="ex: O/K"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-hidden focus:border-[#0072BC] font-mono disabled:bg-slate-50"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold font-mono uppercase tracking-wider text-slate-600 mb-1.5">
+                        Observation
+                      </label>
+                      <input
+                        type="text"
+                        value={form.observation}
+                        disabled={user?.role === "chef_maintenance" || loading}
+                        onChange={(e) =>
+                          setForm({ ...form, observation: e.target.value })
+                        }
+                        placeholder="ex: RAS"
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-hidden focus:border-[#0072BC] font-mono disabled:bg-slate-50"
                       />
                     </div>
                   </div>
 
                   {error && (
                     <div className="text-xs font-mono text-red-700 bg-red-50 border border-red-200/60 rounded-lg px-3 py-2.5 flex items-center gap-2">
-                      <span>⚠</span> {error}
+                      <span>[!]</span> {error}
                     </div>
                   )}
 
                   <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono uppercase tracking-wider font-bold text-xs py-3 px-4 rounded-lg shadow-xs transition-colors focus:outline-hidden disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                    >
-                      {loading ? "Archivage du rapport..." : "✓ Signer et Clôturer l'Intervention"}
-                    </button>
+                    {user?.role === "chef_maintenance" ? (
+                      <div className="text-center py-2 text-xs font-mono font-bold uppercase text-slate-500 bg-slate-100 rounded-lg border border-slate-200">
+                        [ Mode Lecture Seule ]
+                      </div>
+                    ) : (
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-mono uppercase tracking-wider font-bold text-xs py-3 px-4 rounded-lg shadow-xs transition-colors focus:outline-hidden disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        {loading ? "Archivage du rapport..." : "✓ Signer et Clôturer l'Intervention"}
+                      </button>
+                    )}
                   </div>
                 </form>
               </div>
@@ -414,8 +550,8 @@ export default function MaintenancePage() {
   );
 }
 
-// Sous-composant TicketCard relooké
-function TicketCard({ intervention, machine, action }) {
+// Extraction du sous-composant en dehors de MaintenancePage
+function TicketCard({ intervention, machine, action, telechargerPDF }) {
   return (
     <div className="border border-slate-100 rounded-lg p-3.5 bg-white shadow-2xs hover:bg-slate-50/60 transition-colors">
       <div className="flex items-start justify-between gap-4">
@@ -440,7 +576,18 @@ function TicketCard({ intervention, machine, action }) {
           )}
         </div>
         
-        {action && <div className="shrink-0 self-center">{action}</div>}
+        <div className="shrink-0 self-center flex flex-col items-end gap-2">
+          {action && <div>{action}</div>}
+          {!action && telechargerPDF && intervention.statut === "resolu" && (
+            <button
+              type="button"
+              onClick={() => telechargerPDF(intervention.id)}
+              className="text-[11px] font-mono font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-2 rounded-md transition-colors cursor-pointer"
+            >
+              [ PDF ]
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

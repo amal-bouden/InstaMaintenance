@@ -33,6 +33,9 @@ export const login = (username, password) => {
 
 // --- Machines ---
 export const getMachines = () => api.get("/machines");
+export const creerMachine = (data) => api.post("/machines", data);
+export const modifierMachine = (id, data) => api.patch(`/machines/${id}`, data);
+export const supprimerMachine = (id) => api.delete(`/machines/${id}`);
 
 // --- Interventions ---
 export const getInterventions  = ()       => api.get("/interventions");

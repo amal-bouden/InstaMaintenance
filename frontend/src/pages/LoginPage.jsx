@@ -15,6 +15,7 @@ export default function LoginPage() {
     admin: "/admin",
     chef: "/atelier",
     technicien: "/maintenance",
+    chef_maintenance: "/dashboard",
   };
 
   const handleSubmit = async (e) => {

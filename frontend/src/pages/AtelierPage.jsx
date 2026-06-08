@@ -11,9 +11,17 @@ export default function AtelierPage() {
   const [interventions, setInterventions] = useState([]);
   const [machineId, setMachineId] = useState("");
   const [description, setDescription] = useState("");
+  const [nomDemandeur, setNomDemandeur] = useState(user?.username ?? "");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+
+  // Sync user profile name
+  useEffect(() => {
+    if (user?.username) {
+      setNomDemandeur(user.username);
+    }
+  }, [user]);
 
   // Chargement initial
   useEffect(() => {
@@ -53,9 +61,10 @@ export default function AtelierPage() {
     setSuccess("");
     try {
       await creerIntervention({
-        machine_id: parseInt(machineId),
-        description: description.trim(),
-      });
+  machine_id:    parseInt(machineId),
+  description:   description.trim(),
+  nom_demandeur: nomDemandeur.trim(),  // ← ajout
+});
       setSuccess("Réclamation envoyée. Le technicien a été notifié.");
       setMachineId("");
       setDescription("");
@@ -133,6 +142,20 @@ export default function AtelierPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold font-mono uppercase tracking-wider text-slate-600 mb-1.5">
+                  Nom du demandeur / Applicant Name
+                </label>
+                <input
+                  type="text"
+                  value={nomDemandeur}
+                  onChange={(e) => setNomDemandeur(e.target.value)}
+                  placeholder="ex: Mta Damaoui"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-hidden focus:border-[#0072BC] focus:bg-white transition-all font-mono"
+                  required
+                />
+              </div>
+
               <div>
                 <label className="block text-xs font-bold font-mono uppercase tracking-wider text-slate-600 mb-1.5">
                   Équipement cible

@@ -12,7 +12,7 @@ def seed():
         # Vérifie si l'admin existe déjà
         existing = session.exec(select(User).where(User.username == "admin")).first()
         if existing:
-            print("Admin existe déjà, suppression...")
+            print("Admin existe deja, suppression...")
             session.delete(existing)
             session.commit()
 
@@ -26,7 +26,7 @@ def seed():
         session.add(admin)
         session.commit()
         session.refresh(admin)
-        print(f"✅ Admin créé — id: {admin.id}")
+        print(f"[+] Admin cree -- id: {admin.id}")
         print(f"   username : admin")
         print(f"   password : admin123")
         print(f"   hash     : {admin.hashed_password}")

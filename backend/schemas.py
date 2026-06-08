@@ -1,6 +1,6 @@
 from pydantic import BaseModel, validator
 from typing import Optional
-from models import RoleUtilisateur, StatutIntervention
+from .models import RoleUtilisateur, StatutIntervention, SectionAtelier
 
 # --- Auth ---
 class Token(BaseModel):
@@ -40,6 +40,7 @@ class UserResponse(BaseModel):
 class InterventionCreate(BaseModel):
     machine_id:  int
     description: str
+    nom_demandeur: Optional[str] = None
 
     @validator("description")
     def not_empty(cls, v):
@@ -56,9 +57,46 @@ class CloturerIntervention(BaseModel):
     actions_menees:       str
     piece_rechange:       Optional[str] = None
     cout_piece_dt:        Optional[float] = None
+    nom_receptionnaire:   Optional[str] = None
+    nom_operateur:        Optional[str] = None
+    validation_essai:     Optional[str] = None
+    observation:          Optional[str] = None
 
     @validator("actions_menees")
     def actions_required(cls, v):
         if not v.strip():
             raise ValueError("Les actions menées sont obligatoires")
         return v
+
+# --- Machines ---
+class MachineCreate(BaseModel):
+    code: str
+    section: SectionAtelier
+    famille: str
+    etat: Optional[str] = "Fonctionnelle"
+
+    @validator("code")
+    def normalize_code(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Le code machine est obligatoire")
+        return v.strip()
+
+    @validator("famille")
+    def famille_required(cls, v):
+        if not v or not v.strip():
+            raise ValueError("La famille machine est obligatoire")
+        return v.strip()
+
+class MachineUpdate(BaseModel):
+    code: Optional[str] = None
+    section: Optional[SectionAtelier] = None
+    famille: Optional[str] = None
+    etat: Optional[str] = None
+
+    @validator("code")
+    def normalize_code(cls, v):
+        return v.strip() if v else v
+
+    @validator("famille")
+    def normalize_famille(cls, v):
+        return v.strip() if v else v
